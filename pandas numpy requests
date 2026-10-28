@@ -1,0 +1,56 @@
+import time
+import pandas as pd
+import numpy as np
+
+# فرض کریں آپ کسی API (जैसे MetaTrader, Binance, یا Alpaca) سے لائیو ڈیٹا لے رہے ہیں
+def fetch_market_data():
+    # یہاں لائیو کینڈل اسٹک ڈیٹا لانے کا کوڈ آئے گا
+    # مثال کے طور پر OHLCV ڈیٹا (Open, High, Low, Close, Volume)
+    data = {
+        'open': [1.0850, 1.0855, 1.0860, 1.0858, 1.0865],
+        'high': [1.0860, 1.0865, 1.0870, 1.0862, 1.0875],
+        'low': [1.0845, 1.0850, 1.0855, 1.0852, 1.0860],
+        'close': [1.0855, 1.0860, 1.0858, 1.0862, 1.0872],
+        'volume': [1200, 1500, 800, 3000, 4500]  # والیو کا تجزیہ (Volume Analysis)
+    }
+    return pd.DataFrame(data)
+
+def analyze_strategy(df):
+    # 1. Moving Average (مارکیٹ کا ٹرینڈ اور بیلنس چیک کرنے کے لیے)
+    df['SMA_20'] = df['close'].rolling(window=3).mean()
+    
+    # 2. Volume Spike (فبیو کی اسٹریٹجی کے مطابق جب آؤٹ آف بیلنس یا ہائی والیو موو ہو)
+    avg_volume = df['volume'].mean()
+    last_volume = df['volume'].iloc[-1]
+    
+    last_close = df['close'].iloc[-1]
+    last_sma = df['SMA_20'].iloc[-1]
+    
+    signal = "HOLD"
+    
+    # اگر والیو ایوریج سے زیادہ ہو اور پرائس ایس ایم اے سے اوپر ہو (Imbalance / Aggression)
+    if last_volume > (avg_volume * 1.2) and last_close > last_sma:
+        signal = "BUY (LONG) - High Volume Imbalance"
+    elif last_volume > (avg_volume * 1.2) and last_close < last_sma:
+        signal = "SELL (SHORT) - High Volume Imbalance"
+        
+    return signal, last_close
+
+def main():
+    print("Forex/Futures Signal Bot Started (Based on Volume & Market Structure)...")
+    while True:
+        try:
+            df = fetch_market_data()
+            signal, price = analyze_strategy(df)
+            
+            print(f"Current Price: {price} | Generated Signal: {signal}")
+            
+            # یہاں آپ سگنل کو Telegram Bot یا Webhook کے ذریعے لائیو بھیج سکتے ہیں
+            
+            time.sleep(60) # ہر 1 منٹ بعد چیک کرے گا (Scalping Timeframe)
+        except Exception as e:
+            print(f"Error: {e}")
+            break
+
+if __name__ == "__main__":
+    main()
